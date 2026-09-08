@@ -52,7 +52,7 @@ jobs:
           echo "$PWD/wsharp-${WSHARP_VERSION}-${TRIPLE}" >> "$GITHUB_PATH"
 
       - name: Versions
-        run: wsharp --version || true
+        run: wsharp --version
 
       - name: Which packages this changes
         id: changed
