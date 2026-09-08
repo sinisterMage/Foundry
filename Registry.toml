@@ -1,0 +1,5 @@
+[registry]
+version = 1
+name = "Foundry"
+url = "https://github.com/sinisterMage/Foundry.git"
+description = "The package registry for W#."

@@ -1,0 +1,74 @@
+# Whether this registry is one.
+#
+# The check itself is `ci/check.ws`, a W# program that imports `ingot/registry`
+# -- the same reader `ingot resolve` uses -- so what CI enforces and what the
+# client believes cannot drift apart. All this workflow does is fetch a
+# compiler, work out which packages the pull request touched, and hand them
+# over.
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+env:
+  # Pinned rather than "latest", so a release of the compiler cannot change
+  # what this registry accepts without somebody editing this line.
+  #
+  # 0.1.1 is the first release carrying `ingot/registry`, which `ci/check.ws`
+  # imports: against 0.1.0 the check does not compile.
+  WSHARP_VERSION: "0.1.1"
+  TRIPLE: x86_64-unknown-linux-gnu
+
+jobs:
+  check:
+    name: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # The whole history, because a pull request is checked against what
+          # it changed and that needs its base commit to be here.
+          fetch-depth: 0
+
+      - name: Fetch the compiler
+        run: |
+          set -eu
+          name="wsharp-${WSHARP_VERSION}-${TRIPLE}.tar.gz"
+          base="https://github.com/sinisterMage/WSharp/releases/download/v${WSHARP_VERSION}"
+          curl -fsSL -o "$name" "$base/$name"
+          curl -fsSL -o "$name.sha256" "$base/$name.sha256"
+          # Compared by hand rather than with `sha256sum -c`, which also insists
+          # on the file name recorded inside the sidecar matching this one.
+          expected=$(cut -d' ' -f1 < "$name.sha256")
+          actual=$(sha256sum "$name" | cut -d' ' -f1)
+          if [ "$expected" != "$actual" ]; then
+            echo "the tarball is not what the release says it is" >&2
+            exit 1
+          fi
+          tar xzf "$name"
+          echo "$PWD/wsharp-${WSHARP_VERSION}-${TRIPLE}" >> "$GITHUB_PATH"
+
+      - name: Versions
+        run: wsharp --version || true
+
+      - name: Which packages this changes
+        id: changed
+        run: |
+          set -eu
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            paths=$(git diff --name-only \
+              "origin/${{ github.base_ref }}...HEAD" -- packages/ | tr '\n' ' ')
+          else
+            # A push to `main` re-checks the structure and fetches nothing: the
+            # entries were verified on the way in, and a version is never
+            # edited afterwards.
+            paths=""
+          fi
+          echo "changed $paths"
+          echo "paths=$paths" >> "$GITHUB_OUTPUT"
+
+      - name: Check
+        run: wsharp run ci/check.ws -- ${{ steps.changed.outputs.paths }}
