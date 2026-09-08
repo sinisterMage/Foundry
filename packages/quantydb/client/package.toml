@@ -1,0 +1,4 @@
+[package]
+name = "quantydb/client"
+repo = "https://github.com/sinisterMage/QuantyDB.wsharp.git"
+description = "A wire-protocol driver for QuantyDB."
