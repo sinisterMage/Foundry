@@ -70,5 +70,27 @@ jobs:
           echo "changed $paths"
           echo "paths=$paths" >> "$GITHUB_OUTPUT"
 
+      # `--gc-stress` is a workaround for a collector bug, not a preference.
+      #
+      # Fetching a package of any size makes the collector trace, and a trace
+      # evacuates -- and something then writes through a pointer into a block
+      # evacuation has released, which glibc notices as a corrupted malloc
+      # arena. It aborts this check about four runs in five. Whether a run
+      # crashes tracks `moved` in `WSHARP_GC_STATS` exactly: a workload that
+      # traces but moves nothing is never affected, one that moves 40-odd
+      # objects usually is.
+      #
+      # It is in the collector rather than anywhere near `ingot/git`: fetching,
+      # reading a packfile and installing a tree are each clean in isolation
+      # and stay clean however often they are repeated, and it reproduces on
+      # 0.1.1, 0.1.6 and 0.1.7 alike.
+      #
+      # `--gc-stress` collects at every allocation, which keeps the live set
+      # small enough that no trace starts, so nothing is ever moved. At this
+      # size it is also *faster* than the default -- a second or two -- because
+      # the heap never grows enough to be worth tracing.
+      #
+      # Take this out when the collector is fixed. A check that has to switch
+      # off a collector phase to finish is a check with a bug behind it.
       - name: Check
-        run: wsharp run ci/check.ws -- ${{ steps.changed.outputs.paths }}
+        run: wsharp run --gc-stress ci/check.ws -- ${{ steps.changed.outputs.paths }}

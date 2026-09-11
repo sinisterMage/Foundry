@@ -1,0 +1,4 @@
+[package]
+name = "proxima/notebooks"
+repo = "https://github.com/sinisterMage/proxima.wsharp.git"
+description = "An API workbench and a document: Postman's job, and the collection compiles."
