@@ -1,0 +1,4 @@
+[package]
+name = "surrealdb/client"
+repo = "https://github.com/sinisterMage/SurrealDB.wsharp.git"
+description = "SurrealDB driver for W# with parameterized queries, document operations, transactions, and HTTPS."
