@@ -1,0 +1,4 @@
+[package]
+name = "postgres/client"
+repo = "https://github.com/sinisterMage/PostgreSQL.wsharp.git"
+description = "PostgreSQL driver for W# with parameterized queries, streaming results, transactions, and TLS."
